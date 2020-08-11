@@ -284,10 +284,10 @@ class CardOrganizer {
             // find the data item by key value
             const obj = this.data.find(x => x.key == this.addableCardsSelect.value);
 
+            // if keys are unique the newly added card can no longer be in the addable cards array
             if (this.keysAreUnique)
             {
-                console.log(this.addableCardsSelect.value);
-
+                // remove the card from addable cards to prevent double add
                 this.addableCards.splice(
                     this.addableCards.indexOf(this.addableCardsSelect.value),
                     1
