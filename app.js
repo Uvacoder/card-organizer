@@ -66,6 +66,12 @@ class CardOrganizer {
         this.createCards(data);
     }
 
+    /**
+     * Create a card HTML element from a data item with all the necessary buttons and onclick
+     * functions and return it.
+     * @param {Object} item 
+     * @returns {Element} cardEl
+     */
     createCard(item) 
     {
         // create a card HTML element object so that we can easily manage drag-n-drop functionality
@@ -184,6 +190,14 @@ class CardOrganizer {
 
             // define delete button functionality
             deleteBtn.onclick = () => {
+                // if keys are unique, when deleting, add to addableCards as a "recyling bin"
+                if (this.keysAreUnique) 
+                {
+                    this.addableCards.push(parseInt(card.getAttribute("data-key"), 10));
+
+                    this.updateAddableCardsSelect();
+                }
+
                 this.cardContainerEl.removeChild(card);
 
                 this.updateOutputValue();
@@ -254,7 +268,7 @@ class CardOrganizer {
         
         // get references to the newly created html in the add another card element
         const adderEl = addAnotherCardEl.querySelector(".adder");
-        const select = addAnotherCardEl.querySelector("select");
+        this.addableCardsSelect = addAnotherCardEl.querySelector("select");
 
         // hide adder element initially and show on click
         adderEl.style.display = "none";
@@ -268,7 +282,19 @@ class CardOrganizer {
         // define add button functionality
         addBtn.onclick = () => {
             // find the data item by key value
-            const obj = this.data.find(x => x.key == select.value);
+            const obj = this.data.find(x => x.key == this.addableCardsSelect.value);
+
+            if (this.keysAreUnique)
+            {
+                console.log(this.addableCardsSelect.value);
+
+                this.addableCards.splice(
+                    this.addableCards.indexOf(this.addableCardsSelect.value),
+                    1
+                );
+
+                this.updateAddableCardsSelect();
+            }
 
             // insert new card before add another card element to ensure that it is always on the bottom
             this.cardContainerEl.insertBefore(this.createCard(obj), addAnotherCardEl);
@@ -291,6 +317,21 @@ class CardOrganizer {
         adderEl.appendChild(addBtn);
         adderEl.appendChild(cancelBtn);
 
+        this.updateAddableCardsSelect();
+
+        // add the add another card element to the end of the card container
+        this.cardContainerEl.appendChild(addAnotherCardEl);
+    }
+
+    /**
+     * Update the select menu that allows users to add new cards to the column.
+     */
+    updateAddableCardsSelect()
+    {
+        // clear previous options
+        this.addableCardsSelect.innerHTML = "";
+
+        // create option elements for each addable item
         this.addableCards
             ?.forEach(
                 (item) => {
@@ -299,12 +340,9 @@ class CardOrganizer {
                     option.value = item;
                     option.innerText = this.data.find(x => x.key == item).title;
 
-                    select.add(option);
+                    this.addableCardsSelect.add(option);
                 }
             );
-
-        // add the add another card element to the end of the card container
-        this.cardContainerEl.appendChild(addAnotherCardEl);
     }
 
     /**
