@@ -1,7 +1,6 @@
 // constants for default settings if keyword arguments are not defined
 const UNIQUE_DEFAULT_SETTING = true;
 const MUTATION_DEFAULT_SETTING = true;
-const HIDDEN_DATA_DEFAULT_SETTING = true;
 
 /**
  * A class that allows a user to create a number of elements to manipulate cards.
@@ -22,10 +21,15 @@ class CardOrganizer {
             return;
         }
 
+        this.cardContainerEl = cardContainerEl;
+        this.outputEl = outputEl;
+
+        console.log(config)?.mutation;
+
         // populate the configuration settings
-        this.keysAreUnique = config?.unique || UNIQUE_DEFAULT_SETTING;
-        this.allowMutatation = config?.mutation || MUTATION_DEFAULT_SETTING;
-        this.hiddenData = config?.hiddenData || HIDDEN_DATA_DEFAULT_SETTING;
+        this.keysAreUnique = config?.unique ?? UNIQUE_DEFAULT_SETTING;
+        this.allowMutatation = config?.mutation ?? MUTATION_DEFAULT_SETTING;
+        this.hiddenData = config?.hiddenData;
 
         // an array to keep track of the key order of the cards
         this.keys = [];
@@ -49,11 +53,40 @@ class CardOrganizer {
         outputEl.ondragover = e => e.preventDefault();
         outputEl.ondrop = e => e.preventDefault();
 
+        // create the card elements
+        this.createCards(data);
+
+        this.addableCards = [];
+
+        if (this.mutation)
+        {
+            if (!this.keysAreUnique)
+            {
+                this.addableCards = this.keys;
+            }
+
+            // cardContainerEl.innerHTML += `
+            //     <div class="card">
+            //         <div class="card-body">
+            //             Add Another
+            //         </div>
+            //     </div>
+            // `;
+        }
+    }
+
+    /**
+     * Create the card elements and make them draggable.
+     * @param {Object[]} data 
+     */
+    createCards(data) 
+    {
         data
-            .forEach(item => {
+            .forEach(
+                (item) => {
                     // create a card HTML element object so that we can easily manage drag-n-drop functionality
                     const card = document.createElement("div");
-                    card.className = "card";
+                    card.className = "card mb-1";
                     card.draggable = true;
                     card.setAttribute("data-key", item.key);
 
@@ -63,12 +96,108 @@ class CardOrganizer {
                             <h5 class="card-title">
                                 ${item.title}
                             </h5>
-                            
+                                
                             <p class="card-text">
                                 ${item.description}
                             </p>
                         </div>
                     `;
+                    
+                    if (this.allowMutatation)
+                    {
+                        // add a card footer to hold the buttons
+                        card.innerHTML += `<div class="card-footer"></div>`;
+
+                        // define move up elevator button appearance
+                        const moveUpBtn = document.createElement("button");
+                        moveUpBtn.className = "btn btn-light";
+                        moveUpBtn.innerHTML = `
+                            <i class="fa fa-arrow-up"></i>
+                            Move Up
+                        `;
+
+                        // define move up elevator button functionality
+                        moveUpBtn.onclick = () => {
+                            const previousSibling = card.previousElementSibling;
+
+                            if (previousSibling != null)
+                            {
+                                cardContainerEl.insertBefore(card, previousSibling);
+                            }
+
+                            this.updateOutputValue();
+                        }
+
+                        // define move down elevator button appearance
+                        const moveDownBtn = document.createElement("button");
+                        moveDownBtn.className = "btn btn-light";
+                        moveDownBtn.innerHTML = `
+                            <i class="fa fa-arrow-down"></i>
+                            Move Down
+                        `;
+
+                        // define move down elevator button functionality
+                        moveDownBtn.onclick = () => {
+                            const nextSibling = card.nextElementSibling?.nextElementSibling;
+
+                            if (nextSibling != null)
+                            {
+                                this.cardContainerEl.insertBefore(card, nextSibling);
+                            }
+                            else
+                            {
+                                this.cardContainerEl.appendChild(card);
+                            }
+
+                            this.updateOutputValue();
+                        }
+
+                        // define duplicate button appearance
+                        const duplicateBtn = document.createElement("button");
+                        duplicateBtn.className = "btn btn-light";
+                        duplicateBtn.innerHTML = `
+                            <i class="fa fa-copy"></i>
+                            Duplicate
+                        `;
+
+                        // define duplicate button functionality
+                        duplicateBtn.onclick = () => {
+                            const nextSibling = card.nextElementSibling;
+
+                            if (nextSibling != null)
+                            {
+                                this.cardContainerEl.insertBefore(card.cloneNode(true), nextSibling);
+                            }
+                            else 
+                            {
+                                this.cardContainerEl.appendChild(card.cloneNode(true));
+                            }
+
+                            this.updateOutputValue();
+                        }
+
+                        // define delete button appearance
+                        const deleteBtn = document.createElement("button");
+                        deleteBtn.className = "btn btn-danger";
+                        deleteBtn.innerHTML = `
+                            <i class="fa fa-trash-alt"></i>
+                            Delete
+                        `;
+
+                        // define delete button functionality
+                        deleteBtn.onclick = () => {
+                            this.cardContainerEl.removeChild(card);
+
+                            this.updateOutputValue();
+                        }
+
+                        // add all the buttons to the card footer
+                        const footer = card.querySelector(".card-footer");
+                        footer.appendChild(moveUpBtn);
+                        footer.appendChild(moveDownBtn);
+                        footer.appendChild(duplicateBtn);
+                        footer.appendChild(deleteBtn);
+                    }
 
                     // add a class to items being currently dragged so they can be identified with querySelector
                     card.ondragstart = () => card.classList.add("dragging");
@@ -93,14 +222,23 @@ class CardOrganizer {
                         }
 
                         // get updated key order and update the output element value
-                        this.keys = [...cardContainerEl.children].map(x => parseInt(x.getAttribute("data-key"), 10));
-                        outputEl.value = this.keys.join(",");
+                        this.updateOutputValue();
                     }
 
                     // add the card to the container element on the page
                     cardContainerEl.appendChild(card);
                 }
             );
+    }
+
+    /**
+     * Update the value of the hidden input with the order of the cards and their keys.
+     */
+    updateOutputValue()
+    {
+        // get updated key order and update the output element value
+        this.keys = [...this.cardContainerEl.children].map(x => parseInt(x.getAttribute("data-key"), 10));
+        this.outputEl.value = this.keys.join(",");
     }
 }
 
@@ -110,7 +248,8 @@ class CardOrganizer {
  * @param {Number} y 
  * @returns {Element} closest
  */
-function getDragAfterElement(container, y) {
+function getDragAfterElement(container, y) 
+{
     const closest = Array.from(container.querySelectorAll('.card:not(.dragging)'))
         .reduce(
             (closest, child) => {
