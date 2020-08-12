@@ -276,7 +276,7 @@ class CardOrganizer {
                 </p>
 
                 <div class="mt-2 adder">
-                    <select class="form-control mb-2"></select>
+                    <select class="form-control custom-select mb-2"></select>
                 </div>
             </div>
         `;
