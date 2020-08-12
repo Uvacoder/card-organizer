@@ -199,21 +199,23 @@ class CardOrganizer {
                 // if keys are unique, when deleting, add to addableCards as a "recyling bin"
                 if (this.keysAreUnique) 
                 {
+                    // get the key of the card so that we can search for the data by key
                     const key = parseInt(card.getAttribute("data-key"), 10);
 
+                    // look for item in data, if not found, try in hiddenData
                     let item = this.data.find(x => x.key == key);
                     if (item == null)
                     {
                         item = this.hiddenData.find(x => x.key == key);
                     }
 
+                    // add the data item to addableCards and update the select menu options
                     this.addableCards.push(item);
-
                     this.updateAddableCardsSelect();
                 }
 
+                // remove card from container and update output element value
                 this.cardContainerEl.removeChild(card);
-
                 this.updateOutputValue();
             }
 
@@ -230,17 +232,17 @@ class CardOrganizer {
             e.preventDefault();
 
             const currentElement = document.querySelector(".dragging");
-            const nextSibling = getDragAfterElement(cardContainerEl, e.clientY);
+            const closestElement = getClosestElement(cardContainerEl, e.clientY);
 
-            // if no next sibling, insert at end
-            if (nextSibling == null) 
+            // if no closest element at drag end, insert at bottom of container
+            if (closestElement == null) 
             {
                 cardContainerEl.appendChild(currentElement);
             }
-            // if next sibling, insert before next sibling
+            // if there is a closest element, insert before that element
             else 
             {
-                cardContainerEl.insertBefore(currentElement, nextSibling);
+                cardContainerEl.insertBefore(currentElement, closestElement);
             }
 
             // get updated key order and update the output element value
@@ -248,7 +250,6 @@ class CardOrganizer {
         }
 
         // add the card to the container element on the page
-        // cardContainerEl.appendChild(card);
         return card;
     }
 
@@ -350,8 +351,6 @@ class CardOrganizer {
         // create option elements for each addable item
         if (this.addableCards.length)
         {
-            console.log(this.addableCards);
-
             this.addableCards
                 .forEach(
                     (item) => {
@@ -374,6 +373,7 @@ class CardOrganizer {
         // get all divs with data-key attribute to get updated key order 
         this.keys = Array.from(this.cardContainerEl.querySelectorAll("div[data-key]"))
             .map(x => {
+                // convert keys into ints to prevent any possible weird type bugs later
                 return parseInt(x.getAttribute("data-key"), 10);
             });
 
@@ -388,7 +388,7 @@ class CardOrganizer {
  * @param {Number} y 
  * @returns {Element} closest
  */
-function getDragAfterElement(container, y) 
+function getClosestElement(container, y) 
 {
     const closest = Array.from(container.querySelectorAll('.card:not(.dragging)'))
         .reduce(
