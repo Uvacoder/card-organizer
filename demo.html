@@ -47,8 +47,15 @@
             const outputEl = document.getElementById("formOutput");
 
             const config = {
-                unique: false,
-                mutation: true
+                unique: true,
+                mutation: true,
+                hiddenData: [
+                {
+                        "title": "Rees",
+                        "description": "Meter reading.",
+                        "key": 5
+                    }
+                ]
             };
 
             const organizer = new CardOrganizer(

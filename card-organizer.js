@@ -54,16 +54,21 @@ class CardOrganizer {
 
         this.addableCards = [];
 
+        if (this.hiddenData)
+        {
+            this.addableCards = this.addableCards.concat(this.hiddenData);
+        }
+
         if (this.allowMutatation)
         {
             if (!this.keysAreUnique)
             {
-                this.addableCards = this.keys;
+               this.addableCards = this.addableCards.concat(this.data);
             }
         }
 
         // create the card elements
-        this.createCards(data);
+        this.createCards(this.data);
     }
 
     /**
@@ -130,13 +135,14 @@ class CardOrganizer {
         moveDownBtn.onclick = () => {
             const nextSibling = card.nextElementSibling?.nextElementSibling;
 
-            if (nextSibling != null) 
+            // if is at bottom, do not swap with the Add Another Card element
+            if (nextSibling == null) 
             {
-                this.cardContainerEl.insertBefore(card, nextSibling);
+                return;
             }
             else 
             {
-                this.cardContainerEl.appendChild(card);
+                this.cardContainerEl.insertBefore(card, nextSibling);
             }
 
             this.updateOutputValue();
@@ -193,7 +199,15 @@ class CardOrganizer {
                 // if keys are unique, when deleting, add to addableCards as a "recyling bin"
                 if (this.keysAreUnique) 
                 {
-                    this.addableCards.push(parseInt(card.getAttribute("data-key"), 10));
+                    const key = parseInt(card.getAttribute("data-key"), 10);
+
+                    let item = this.data.find(x => x.key == key);
+                    if (item == null)
+                    {
+                        item = this.hiddenData.find(x => x.key == key);
+                    }
+
+                    this.addableCards.push(item);
 
                     this.updateAddableCardsSelect();
                 }
@@ -282,22 +296,24 @@ class CardOrganizer {
         // define add button functionality
         addBtn.onclick = () => {
             // find the data item by key value
-            const obj = this.data.find(x => x.key == this.addableCardsSelect.value);
+            const obj = this.addableCards.find(x => x.key == this.addableCardsSelect.value);
 
             // if keys are unique the newly added card can no longer be in the addable cards array
             if (this.keysAreUnique)
             {
                 // remove the card from addable cards to prevent double add
                 this.addableCards.splice(
-                    this.addableCards.indexOf(this.addableCardsSelect.value),
+                    this.addableCards.findIndex(x => x.key == this.addableCardsSelect.value),
                     1
                 );
-
+                
                 this.updateAddableCardsSelect();
             }
 
             // insert new card before add another card element to ensure that it is always on the bottom
             this.cardContainerEl.insertBefore(this.createCard(obj), addAnotherCardEl);
+
+            this.updateOutputValue();
         }
 
         // define cancel button appearance
@@ -332,17 +348,22 @@ class CardOrganizer {
         this.addableCardsSelect.innerHTML = "";
 
         // create option elements for each addable item
-        this.addableCards
-            ?.forEach(
-                (item) => {
-                    // create an option value for each data item and add it to the select
-                    const option = document.createElement("option");
-                    option.value = item;
-                    option.innerText = this.data.find(x => x.key == item).title;
+        if (this.addableCards.length)
+        {
+            console.log(this.addableCards);
 
-                    this.addableCardsSelect.add(option);
-                }
-            );
+            this.addableCards
+                .forEach(
+                    (item) => {
+                        // create an option value for each data item and add it to the select
+                        const option = document.createElement("option");
+                        option.value = item.key;
+                        option.innerText = item.title;
+
+                        this.addableCardsSelect.add(option);
+                    }
+                );
+        }
     }
 
     /**
@@ -350,8 +371,13 @@ class CardOrganizer {
      */
     updateOutputValue()
     {
-        // get updated key order and update the output element value
-        this.keys = [...this.cardContainerEl.children].map(x => parseInt(x.getAttribute("data-key"), 10));
+        // get all divs with data-key attribute to get updated key order 
+        this.keys = Array.from(this.cardContainerEl.querySelectorAll("div[data-key]"))
+            .map(x => {
+                return parseInt(x.getAttribute("data-key"), 10);
+            });
+
+        // update the output element value
         this.outputEl.value = this.keys.join(",");
     }
 }
